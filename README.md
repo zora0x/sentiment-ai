@@ -135,17 +135,47 @@ Build output:
 
 ## GitHub Pages deployment
 
-The workflow at `.github/workflows/deploy.yml` runs on every push to `main`:
+**Live site:** https://zora0x.github.io/sentiment-ai/
+
+### How this deployment was published
+
+The intended path is the workflow at `.github/workflows/deploy.yml`:
 
 1. checkout, 2. Node 22 with npm cache, 3. `npm ci`, 4. `npm run build`, 5. `actions/configure-pages`, 6. `actions/upload-pages-artifact` (`dist/`), 7. `actions/deploy-pages`.
 
-One-time repository setup:
+**That path is currently blocked on this account**: the first workflow run failed with
 
-```bash
-gh api -X POST repos/<user>/sentiment-ai/pages -f build_type=workflow
+```
+The job was not started because your account is locked due to a billing issue.
 ```
 
-or in the browser: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+GitHub Actions does not start runners, so no artifact can be uploaded. That is an account-level restriction, not a problem with the workflow or the build.
+
+The site is therefore published from a `gh-pages` branch containing the built `dist/` output plus a `.nojekyll` file, with Pages set to serve that branch:
+
+```bash
+npm run build
+rm -rf /tmp/deploy-gh-pages && cp -R dist /tmp/deploy-gh-pages
+cd /tmp/deploy-gh-pages && touch .nojekyll
+git init -b gh-pages && git add -A && git commit -m "Deploy build"
+git remote add origin https://github.com/<user>/sentiment-ai.git
+git push -f origin gh-pages
+
+gh api -X PUT repos/<user>/sentiment-ai/pages \
+  -f build_type=legacy -f "source[branch]=gh-pages" -f "source[path]=/"
+```
+
+Both branches are needed because Pages only triggers a build on a push **after** the source is configured.
+
+### Switching to the Actions workflow
+
+Once the billing lock is lifted:
+
+```bash
+gh api -X PUT repos/<user>/sentiment-ai/pages -f build_type=workflow
+```
+
+Then push to `main` (or re-run the workflow). No other change is required — `vite.config.js` already uses a relative base, so the same build works either way. The `gh-pages` branch can then be deleted.
 
 ## Runtime behaviour and network requirements
 

@@ -28,6 +28,9 @@ let classifier = null;
 let loading = null;
 let progressHandler = null;
 const downloads = new Map();
+// Config and tokenizer files are a few hundred kB; including them makes the
+// percentage jump to 100% and back. Only the weight file drives the progress bar.
+const PROGRESS_MIN_BYTES = 10 * 1024 * 1024;
 
 export function isReady() {
   return classifier !== null;
@@ -56,6 +59,7 @@ function trackProgress(event) {
   let loadedBytes = 0;
   let totalBytes = 0;
   for (const entry of downloads.values()) {
+    if (entry.total < PROGRESS_MIN_BYTES) continue;
     loadedBytes += entry.loaded;
     totalBytes += entry.total;
   }
