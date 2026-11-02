@@ -100,22 +100,31 @@ function setEmptyHint(cached) {
 }
 
 /**
- * Start fetching the model as soon as the page is idle. A visitor who reads the
- * page and types for twenty seconds spends that time downloading instead of
- * waiting after pressing the button. Skipped on data-saver connections.
+ * Warm the model as soon as the page is idle: fetch the weights on a cold visit
+ * (so typing overlaps the download), or just build the session on a warm one
+ * (so the first click is instant). Skipped on data-saver connections.
  */
 function schedulePreload(cached) {
-  if (cached) return;
-
   if (navigator.connection && navigator.connection.saveData) {
     setModelState('idle', 'Model loads on first analysis · data saver is on');
+    return;
+  }
+
+  if (navigator.deviceMemory && navigator.deviceMemory < 4) {
+    setModelState(
+      'idle',
+      cached ? 'Model cached · loads on first analysis' : 'Model not loaded yet · one-time 130 MB download'
+    );
     return;
   }
 
   const start = () => {
     if (preloadStarted || modelReady) return;
     preloadStarted = true;
-    setModelState('loading', 'Preparing model · one-time download');
+    setModelState(
+      'loading',
+      cached ? 'Loading cached model into memory' : 'Preparing model · one-time download'
+    );
     try {
       getWorker().postMessage({ type: 'load' });
     } catch {
@@ -123,8 +132,9 @@ function schedulePreload(cached) {
     }
   };
 
-  if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 2000 });
-  else setTimeout(start, 1200);
+  const delay = cached ? 2000 : 1200;
+  if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: delay + 1500 });
+  else setTimeout(start, delay);
 }
 
 /* ------------------------------------------------------------------ worker */
@@ -431,11 +441,12 @@ updateCounter();
   modelCached = cached;
   setEmptyHint(cached);
 
-  if (cached) {
-    setModelState('ready', 'Model cached in this browser · ready to analyse');
-    return;
-  }
+  setModelState(
+    cached ? 'ready' : 'idle',
+    cached
+      ? 'Model cached in this browser · ready to analyse'
+      : 'Model not loaded yet · one-time 130 MB download'
+  );
 
-  setModelState('idle', 'Model not loaded yet · one-time 130 MB download');
-  schedulePreload(false);
+  schedulePreload(cached);
 })();
