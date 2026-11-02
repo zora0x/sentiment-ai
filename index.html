@@ -59,6 +59,12 @@
             <span class="panel__hint">English · up to 6,000 characters</span>
           </div>
 
+          <div class="model-status" id="model-status" data-state="idle" hidden>
+            <span class="model-status__dot" aria-hidden="true"></span>
+            <span id="model-status-text">Checking model…</span>
+            <span class="model-status__pct" id="model-status-pct"></span>
+          </div>
+
           <label class="sr-only" for="input-text">Text to analyse</label>
           <textarea
             id="input-text"
@@ -117,7 +123,7 @@
               </svg>
             </span>
             <p class="empty__title">Nothing analysed yet</p>
-            <p class="empty__text">
+            <p class="empty__text" id="empty-hint">
               Add some text and select <strong>Analyse Sentiment</strong>. The model runs locally, so the
               first run downloads about 130&nbsp;MB of model and runtime files.
             </p>

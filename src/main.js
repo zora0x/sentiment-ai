@@ -31,6 +31,10 @@ const ui = {
   analyse: el('analyse-btn'),
   analyseLabel: document.querySelector('#analyse-btn .btn__label'),
   clear: el('clear-btn'),
+  modelStatus: el('model-status'),
+  modelStatusText: el('model-status-text'),
+  modelStatusPct: el('model-status-pct'),
+  emptyHint: el('empty-hint'),
   status: el('status'),
   statusText: el('status-text'),
   statusPct: el('status-pct'),
@@ -56,9 +60,72 @@ const ui = {
 
 let busy = false;
 let modelReady = false;
+let modelCached = false;
+let preloadStarted = false;
 let worker = null;
 let requestId = 0;
 const pending = new Map();
+
+/* ------------------------------------------------------------- model status */
+
+const MODEL_CACHE = 'transformers-cache';
+const MODEL_FILE = 'twitter-roberta-base-sentiment-latest';
+
+/**
+ * Transformers.js keeps downloaded files in the Cache API. Checking it costs
+ * nothing and tells us whether a visit will pay the 130 MB download or not.
+ */
+async function modelIsCached() {
+  if (!('caches' in window)) return false;
+  try {
+    const cache = await caches.open(MODEL_CACHE);
+    const keys = await cache.keys();
+    return keys.some((request) => request.url.includes(MODEL_FILE) && request.url.includes('model_quantized'));
+  } catch {
+    return false;
+  }
+}
+
+function setModelState(state, text, pct = '') {
+  ui.modelStatus.hidden = false;
+  ui.modelStatus.dataset.state = state;
+  ui.modelStatusText.textContent = text;
+  ui.modelStatusPct.textContent = pct;
+}
+
+function setEmptyHint(cached) {
+  ui.emptyHint.innerHTML = cached
+    ? 'Add some text and select <strong>Analyse Sentiment</strong>. The model is already cached in this browser, so analysis runs offline and takes about a second.'
+    : 'Add some text and select <strong>Analyse Sentiment</strong>. The model runs locally, so the first run downloads about 130&nbsp;MB of model and runtime files, then stays cached.';
+}
+
+/**
+ * Start fetching the model as soon as the page is idle. A visitor who reads the
+ * page and types for twenty seconds spends that time downloading instead of
+ * waiting after pressing the button. Skipped on data-saver connections.
+ */
+function schedulePreload(cached) {
+  if (cached) return;
+
+  if (navigator.connection && navigator.connection.saveData) {
+    setModelState('idle', 'Model loads on first analysis · data saver is on');
+    return;
+  }
+
+  const start = () => {
+    if (preloadStarted || modelReady) return;
+    preloadStarted = true;
+    setModelState('loading', 'Preparing model · one-time download');
+    try {
+      getWorker().postMessage({ type: 'load' });
+    } catch {
+      /* the first analysis will surface the error */
+    }
+  };
+
+  if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 2000 });
+  else setTimeout(start, 1200);
+}
 
 /* ------------------------------------------------------------------ worker */
 
@@ -74,6 +141,18 @@ function getWorker() {
 
   worker.onmessage = (event) => {
     const message = event.data || {};
+
+    if (message.type === 'ready') {
+      modelReady = true;
+      setModelState('ready', 'Model ready · runs locally in this tab');
+      setEmptyHint(true);
+      return;
+    }
+
+    if (message.type === 'load-error') {
+      setModelState('error', 'Model unavailable · will retry when you analyse');
+      return;
+    }
 
     if (message.type === 'progress') {
       onDownloadProgress(message);
@@ -115,10 +194,21 @@ function analyseInWorker(text) {
 }
 
 function onDownloadProgress({ percent, loadedBytes, totalBytes }) {
-  if (totalBytes > 0) {
-    setStatus(`Downloading model weights · ${mb(loadedBytes)} of ${mb(totalBytes)}`, percent);
-  } else {
-    setStatus('Downloading model weights', 0, true);
+  const known = totalBytes >= 1048576;
+  const size = known
+    ? loadedBytes >= 1048576
+      ? `${mb(loadedBytes)} of ${mb(totalBytes)}`
+      : mb(totalBytes)
+    : '';
+  setModelState(
+    'loading',
+    'Preparing model · one-time download',
+    known ? `${Math.round(percent)}% · ${size}` : ''
+  );
+
+  if (busy) {
+    if (known) setStatus(`Downloading model weights · ${size}`, percent);
+    else setStatus('Downloading model weights', 0, true);
   }
 }
 
@@ -282,13 +372,18 @@ async function run() {
   ui.loadingTitle.textContent = ready ? 'Analysing text' : 'Warming up the model';
   ui.loadingText.textContent = ready
     ? 'Running the transformer locally — a few seconds for longer passages.'
-    : 'Downloading about 130 MB of model and runtime files. This happens once; afterwards your browser caches them.';
+    : modelCached
+      ? 'Loading the cached model into memory — usually a second or two.'
+      : 'Downloading about 130 MB of model and runtime files. This happens once; afterwards your browser caches them.';
 
   if (!ready) setStatus('Downloading model weights', 0);
   else setStatus('Running inference', 0, true);
 
   try {
     const result = await analyseInWorker(text);
+    modelReady = true;
+    setModelState('ready', 'Model ready · runs locally in this tab');
+    setEmptyHint(true);
     renderResult(result);
   } catch (error) {
     renderError(error);
@@ -328,3 +423,19 @@ for (const button of document.querySelectorAll('[data-example]')) {
 }
 
 updateCounter();
+
+/* ------------------------------------------------------------------- boot */
+
+(async () => {
+  const cached = await modelIsCached();
+  modelCached = cached;
+  setEmptyHint(cached);
+
+  if (cached) {
+    setModelState('ready', 'Model cached in this browser · ready to analyse');
+    return;
+  }
+
+  setModelState('idle', 'Model not loaded yet · one-time 130 MB download');
+  schedulePreload(false);
+})();

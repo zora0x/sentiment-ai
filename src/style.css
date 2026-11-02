@@ -991,10 +991,76 @@ a {
   height: 15px;
 }
 
+/* ------------------------------------------------------------------ model status */
+.model-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.022);
+  font-size: 0.775rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.model-status__dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted-dim);
+}
+
+.model-status__pct {
+  margin-left: auto;
+  padding-left: 10px;
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.model-status[data-state="loading"] {
+  border-color: rgba(34, 211, 238, 0.24);
+  color: #b9c9dd;
+}
+
+.model-status[data-state="loading"] .model-status__dot {
+  background: var(--cyan);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.model-status[data-state="ready"] .model-status__dot {
+  background: var(--positive);
+}
+
+.model-status[data-state="ready"] {
+  color: var(--muted);
+}
+
+.model-status[data-state="error"] {
+  border-color: rgba(251, 113, 133, 0.28);
+}
+
+.model-status[data-state="error"] .model-status__dot {
+  background: var(--negative);
+}
+
 /* ------------------------------------------------------------------ motion */
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
   }
 }
 
