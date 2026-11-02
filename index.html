@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SentimentAI — AI-Powered Text Sentiment Analysis</title>
+    <meta
+      name="description"
+      content="SentimentAI classifies English text as positive, negative, or neutral using a transformer model running entirely in your browser. No text leaves your device."
+    />
+    <meta name="theme-color" content="#060a12" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script type="module" crossorigin src="./assets/index-CcM1gG9y.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CPbvmX9v.css">
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true">
+      <span class="ambient__glow ambient__glow--a"></span>
+      <span class="ambient__glow ambient__glow--b"></span>
+      <span class="ambient__grid"></span>
+    </div>
+
+    <header class="site-header">
+      <div class="wrap site-header__inner">
+        <div class="brand">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+              <path d="M4 15.5c2.2 0 2.6-7 4.8-7s2.4 9 4.6 9 2.3-5.5 4.4-5.5c.9 0 1.5.5 2.2 1" />
+            </svg>
+          </span>
+          <span class="brand__text">
+            <span class="brand__name">SentimentAI</span>
+            <span class="brand__sub">AI-Powered Text Sentiment Analysis</span>
+          </span>
+        </div>
+        <span class="badge">NLP Project</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <h1 id="hero-title" class="hero__title">
+          Understand the sentiment behind <span class="grad">your words.</span>
+        </h1>
+        <p class="hero__lede">
+          Enter a sentence, review, or comment to discover whether its overall tone is positive,
+          negative, or neutral.
+        </p>
+        <ul class="hero__facts">
+          <li>Runs fully in your browser</li>
+          <li>Your text is never uploaded</li>
+          <li>Transformer model · 3 classes</li>
+        </ul>
+      </section>
+
+      <section class="wrap workspace" aria-label="Sentiment analyser">
+        <!-- Input ------------------------------------------------------------ -->
+        <div class="panel panel--input">
+          <div class="panel__head">
+            <h2 class="panel__title">Your text</h2>
+            <span class="panel__hint">English · up to 6,000 characters</span>
+          </div>
+
+          <label class="sr-only" for="input-text">Text to analyse</label>
+          <textarea
+            id="input-text"
+            class="textarea"
+            placeholder="Type or paste your text here..."
+            rows="7"
+            maxlength="6000"
+            spellcheck="false"
+            aria-describedby="char-count"
+          ></textarea>
+
+          <div class="examples" role="group" aria-label="Example inputs">
+            <button class="chip" type="button" data-example="positive">
+              <span class="chip__dot chip__dot--pos" aria-hidden="true"></span>Positive example
+            </button>
+            <button class="chip" type="button" data-example="negative">
+              <span class="chip__dot chip__dot--neg" aria-hidden="true"></span>Negative example
+            </button>
+            <button class="chip" type="button" data-example="neutral">
+              <span class="chip__dot chip__dot--neu" aria-hidden="true"></span>Neutral example
+            </button>
+          </div>
+
+          <div class="panel__foot">
+            <span id="char-count" class="counter">0 / 6000</span>
+            <div class="actions">
+              <button id="clear-btn" class="btn btn--ghost" type="button">Clear</button>
+              <button id="analyse-btn" class="btn btn--primary" type="button" disabled>
+                <span class="btn__label">Analyse Sentiment</span>
+                <span class="btn__spinner" aria-hidden="true"></span>
+              </button>
+            </div>
+          </div>
+
+          <div id="status" class="status" hidden>
+            <div class="status__row">
+              <span id="status-text" class="status__text"></span>
+              <span id="status-pct" class="status__pct"></span>
+            </div>
+            <div class="status__track"><span id="status-bar" class="status__bar"></span></div>
+          </div>
+        </div>
+
+        <!-- Result ----------------------------------------------------------- -->
+        <div class="panel panel--result" id="result-panel" aria-live="polite" aria-atomic="true">
+          <div class="panel__head">
+            <h2 class="panel__title">Result</h2>
+            <span id="result-meta" class="panel__hint"></span>
+          </div>
+
+          <div id="result-empty" class="empty">
+            <span class="empty__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                <path d="M4 6.5h16M4 12h10M4 17.5h7" />
+                <circle cx="18" cy="15" r="3.2" />
+              </svg>
+            </span>
+            <p class="empty__title">Nothing analysed yet</p>
+            <p class="empty__text">
+              Add some text and select <strong>Analyse Sentiment</strong>. The model runs locally, so the
+              first run downloads about 130&nbsp;MB of model and runtime files.
+            </p>
+          </div>
+
+          <div id="result-loading" class="empty" hidden>
+            <span class="loader" aria-hidden="true"></span>
+            <p class="empty__title" id="loading-title">Warming up the model</p>
+            <p class="empty__text" id="loading-text">Downloading weights and building the inference session…</p>
+          </div>
+
+          <div id="result-error" class="empty empty--error" hidden>
+            <span class="empty__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M12 8.5v4.5M12 16.2v.1" />
+                <path d="M10.3 4.6 3.4 17a2 2 0 0 0 1.7 3h13.8a2 2 0 0 0 1.7-3L13.7 4.6a2 2 0 0 0-3.4 0Z" />
+              </svg>
+            </span>
+            <p class="empty__title">Analysis could not run</p>
+            <p class="empty__text" id="error-text"></p>
+            <button id="retry-btn" class="btn btn--ghost btn--sm" type="button">Try again</button>
+          </div>
+
+          <div id="result-card" class="verdict" hidden>
+            <div class="verdict__top">
+              <span class="verdict__icon" id="verdict-icon" aria-hidden="true"></span>
+              <div>
+                <p class="verdict__eyebrow">Predicted sentiment</p>
+                <p class="verdict__label" id="verdict-label"></p>
+              </div>
+            </div>
+
+            <div class="score">
+              <div class="score__row">
+                <span class="score__caption">Confidence</span>
+                <span class="score__value" id="score-value"></span>
+              </div>
+              <div
+                class="score__track"
+                id="score-track"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-label="Model score for the predicted label"
+              >
+                <span class="score__fill" id="score-fill"></span>
+              </div>
+              <p class="score__note">
+                A softmax score for the winning label — a relative model score, not a probability that
+                the prediction is correct.
+              </p>
+            </div>
+
+            <p class="verdict__explain" id="verdict-explain"></p>
+
+            <details class="details" id="details">
+              <summary>Technical details</summary>
+              <div class="details__body">
+                <table class="scores">
+                  <caption class="sr-only">Model score for each class</caption>
+                  <thead>
+                    <tr><th scope="col">Label</th><th scope="col">Score</th></tr>
+                  </thead>
+                  <tbody id="scores-body"></tbody>
+                </table>
+                <dl class="meta" id="meta-list"></dl>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- Education --------------------------------------------------------- -->
+      <section class="wrap edu" aria-labelledby="edu-title">
+        <div class="edu__head">
+          <h2 id="edu-title" class="section-title">How this works</h2>
+          <p class="section-lede">
+            A short primer on the natural language processing behind the button you just pressed.
+          </p>
+        </div>
+        <div class="edu__grid">
+          <article class="card">
+            <span class="card__num">01</span>
+            <h3>What sentiment analysis is</h3>
+            <p>
+              Sentiment analysis is the task of deciding whether a piece of text expresses a positive,
+              negative, or neutral attitude. Here the unit of analysis is the whole passage, so a
+              review of a product and a complaint about a service are judged on their overall tone
+              rather than on a single keyword.
+            </p>
+          </article>
+          <article class="card">
+            <span class="card__num">02</span>
+            <h3>How NLP reads the text</h3>
+            <p>
+              The text is split into sub-word tokens, converted into contextual embeddings, and passed
+              through a transformer that weighs every word against its neighbours. That context is why
+              “not bad at all” can be read as positive, and why the model does not simply count happy
+              or sad words.
+            </p>
+          </article>
+          <article class="card">
+            <span class="card__num">03</span>
+            <h3>Where it is used</h3>
+            <p>
+              Product reviews, app-store ratings, support tickets, open-ended survey answers, and
+              social listening. Teams use it to triage large volumes of feedback, track sentiment over
+              time, and spot problems that would be missed by manual reading.
+            </p>
+          </article>
+          <article class="card card--warn">
+            <span class="card__num">04</span>
+            <h3>What it cannot do</h3>
+            <p>
+              Sarcasm, irony, and mixed opinions are hard. This model was fine-tuned on English tweets,
+              so formal or domain-specific writing may be scored less reliably. It predicts one label
+              for the whole passage — it will not tell you which sentence caused the result. A score is
+              an estimate, never a certainty.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap site-footer__inner">
+        <div>
+          <p class="site-footer__name">SentimentAI</p>
+          <p class="site-footer__meta">AI Applications Lab Project</p>
+        </div>
+        <p class="site-footer__note">
+          Automated estimates only — predictions can be wrong and must not be used to make decisions
+          about people. Text you enter is processed in your browser, is never stored, and is never sent
+          to this site's host.
+        </p>
+        <a
+          class="site-footer__link"
+          id="repo-link"
+          href="https://github.com/zora0x/sentiment-ai"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View source on GitHub
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      </div>
+    </footer>
+
+  </body>
+</html>
