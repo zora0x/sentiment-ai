@@ -10,8 +10,8 @@
     />
     <meta name="theme-color" content="#060a12" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <script type="module" crossorigin src="./assets/index-C6Gj4WnU.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CPbvmX9v.css">
+    <script type="module" crossorigin src="./assets/index-aFSLXWE7.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-C84hOFez.css">
   </head>
   <body>
     <div class="ambient" aria-hidden="true">
@@ -59,6 +59,12 @@
           <div class="panel__head">
             <h2 class="panel__title">Your text</h2>
             <span class="panel__hint">English · up to 6,000 characters</span>
+          </div>
+
+          <div class="model-status" id="model-status" data-state="idle" hidden>
+            <span class="model-status__dot" aria-hidden="true"></span>
+            <span id="model-status-text">Checking model…</span>
+            <span class="model-status__pct" id="model-status-pct"></span>
           </div>
 
           <label class="sr-only" for="input-text">Text to analyse</label>
@@ -119,7 +125,7 @@
               </svg>
             </span>
             <p class="empty__title">Nothing analysed yet</p>
-            <p class="empty__text">
+            <p class="empty__text" id="empty-hint">
               Add some text and select <strong>Analyse Sentiment</strong>. The model runs locally, so the
               first run downloads about 130&nbsp;MB of model and runtime files.
             </p>
